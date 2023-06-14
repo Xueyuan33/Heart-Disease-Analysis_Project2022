@@ -1,0 +1,205 @@
+---
+title: "Phase2_minwoo"
+author: "Minwoo Sohn"
+date: "2022-11-07"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load library
+```{r}
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+library(readr)
+```
+
+```{r}
+# Load master.csv file
+#master<-read.csv("../2_data/phase2_data.csv")
+master<-read.csv("master.csv")
+```
+
+```{r}
+# Freedom_score and freedom_status
+freedom <- master %>% 
+  dplyr::select(Country, Freedom_Score, Freedom_Status)
+```
+
+```{r}
+# Check the differences between two files: "freedom" and "world coordinates"
+world_coordinates <- map_data("world")
+
+# setdiff(freedom$Country, world_coordinates$region)
+# setdiff(world_coordinates$region,freedom$Country)
+```
+
+```{r}
+freedom$Country[freedom$Country == "United States"] <- "USA"
+freedom$Country[freedom$Country == "Russian Federation"] <- "Russia"
+freedom$Country[freedom$Country == "United Kingdom"] <- "UK"
+
+# freedom %>% 
+#   filter(Country == "Venezuela")
+```
+
+
+```{r}
+world_coordinates <- map_data("world")
+mapdata <- left_join(world_coordinates, freedom, by = c("region" = "Country"))
+
+# create world map using ggplot() function
+map1 <- ggplot(mapdata, aes(x = long, y = lat, group = group)) +
+  geom_polygon(aes(fill = Freedom_Score), color = 'black') +
+  labs(title = "Freedom Score around the World") +
+  xlab("Longitude") +
+  ylab("Latitude") +
+  theme(plot.title = element_text(size = 14, 
+                    family = "Tahoma", face = "bold"),
+                    text = element_text(size = 12, family = "Tahoma"),
+                    axis.title = element_text(face="bold"),
+                    axis.text.x=element_text(size = 11)) 
+
+map1
+
+
+map2 <- ggplot(mapdata, aes(x = long, y = lat, group = group)) +
+  geom_polygon(aes(fill = Freedom_Status), color = 'black') +
+  labs(title = "Freedom Status around the World") +
+  xlab("Longitude") +
+  ylab("Latitude") +
+  guides(fill=guide_legend("Freedom Status")) +
+  theme(plot.title = element_text(size = 14, 
+                    family = "Tahoma", face = "bold"),
+                    text = element_text(size = 12, family = "Tahoma"),
+                    axis.title = element_text(face="bold"),
+                    axis.text.x=element_text(size = 11)) 
+
+map2
+```
+
+The world map is colored based on the Freedom Score and Freedom Status analysis. The Freedom score measures people's access to political rights and civil liberties among 210 countries and territories on a scale of 0 to 100. To be more specific, the political rights are evaluated based on the electoral process, political pluralism and participation, and government functioning under 10 sub-questions that are worth 4 points each, adding up to a total of 40 points. Civil liberties are determined by measuring freedom of expression and belief, organizational rights, rule of law, personal autonomy and individual rights. There are 15 sub-questions related to the topics mentioned above that are worth 4 points each, adding up to a total of 60 points. Two categories would sum up to 100 points. Freedom Status divides the numerical score into 3 categories, "Free", "Partly Free", and "Not Free" to deliver a more intuitive interpretation of the score. 
+
+From the result, we can observe that most of the western world, countries in North America, South America, and Western Europe have a freedom score above 70 and are considered free. Countries in Southern Africa, Oceania, and East Asia also fall within the free category. Central American countries, East and Western African countries, Southern Asia, and Southeast Asian countries obtained freedom scores between 35 and 70 and are classified as partly free. The rest of the world, Central Africa, part of Southeast Asia, Central Asia, and Middle East countries received a freedom score below 35 and are considered not free.
+
+```{r}
+library(patchwork)
+master <- master %>% 
+  mutate(Death_Rate = Heart_Disease_Deaths/Population * 100)
+
+# Relationship between Freedom_Score and Death_Rate
+freedom_death_relationship1 <- ggplot(master, aes(x=Freedom_Score, y=Death_Rate))+ 
+  geom_point()+
+  geom_smooth(method="lm", se=F, fullrange=FALSE, level=0.95) +
+  scale_y_continuous()+
+  labs(title = "Freedom Score vs. Death Rate in Different Countries",
+       x = "Freedom Score", y = "Death Rate (%)") +
+  theme(plot.title = element_text(size = 14, 
+                    family = "Tahoma", face = "bold"),
+                    text = element_text(size = 12, family = "Tahoma"),
+                    axis.title = element_text(face="bold"),
+                    axis.text.x=element_text(size = 11)) 
+
+
+freedom_death_relationship2 <- ggplot(master, aes(x=Freedom_Score, y=Death_Rate, color = Freedom_Status))+ 
+  geom_point()+
+  scale_y_continuous()+
+  geom_smooth(method="lm", se=F, fullrange=FALSE, level=0.95) +
+  labs(title = "Freedom Score vs. Death Rate in Different Countries \n Further Divided by Freedom Status",
+   x = "Freedom Score", y = "Death Rate (%)") +
+  theme(plot.title = element_text(size = 14, 
+                    family = "Tahoma", face = "bold"),
+                    text = element_text(size = 12, family = "Tahoma"),
+                    axis.title = element_text(face="bold"),
+                    axis.text.x=element_text(size = 11)) 
+
+
+freedom_death_relationship1 + freedom_death_relationship2
+
+cor(master$Freedom_Score, master$Death_Rate,  method = "pearson", use = "complete.obs")
+```
+
+To explore which variables are the most related to the heart disease death rate, we relate 'Freedom_Score' with the 'Death_Rate'. From the scatter plot, we cannot find an apparent relationship between 'Freedom Score' and 'Death Rate'. Most of the countries, regardless of the freedom score, have the Death Rate in lower ends, clustering around 0.2%. A greater number of countries were observed to have a death rate greater than 0.2% among the countries with a freedom score above 50. The countries with a freedom score greater than 75 have more points above the death rate of 0.2%. However, the points were so dispersed that they were not able to give insights into the trends. The line of the best fit displays a gentle linear slope, almost like a horizontal line, until the death rate is 0.002. The correlation coefficient was computed to be 0.1816, which suggests that the two variables are very loosely related.  
+
+```{r}
+# look into "political rights"
+
+political_death <- ggplot(master, aes(x=Political_Rights, y=Death_Rate))+ 
+  geom_point()+
+  scale_y_continuous() +
+  geom_smooth(method="lm", se=F, fullrange=FALSE, level=0.95)+
+  labs(title = "Political Right vs. Death Rate in Different Countries",
+   x = "Political Right Score", y = "Death Rate (%)") +
+  theme(plot.title = element_text(size = 14, 
+                    family = "Tahoma", face = "bold"),
+                    text = element_text(size = 12, family = "Tahoma"),
+                    axis.title = element_text(face="bold"),
+                    axis.text.x=element_text(size = 11)) 
+
+
+cor(master$Political_Rights, master$Death_Rate,  method = "pearson", use = "complete.obs")
+```
+
+```{r}
+# look into "civil liberties"
+(political_death <- ggplot(master, aes(x=Civil_Liberties, y= Death_Rate ))+ 
+  geom_point()+
+  scale_y_continuous() +
+  geom_smooth(method="lm", se=F, fullrange=FALSE, level=0.95) +
+  labs(title = "Civil Liberties Score vs. Death Rate in Different Countries",
+   x = "Civil Liberties Score", y = "Death Rate (%)") +
+   theme(plot.title = element_text(size = 14, 
+                    family = "Tahoma", face = "bold"),
+                    text = element_text(size = 12, family = "Tahoma"),
+                    axis.title = element_text(face="bold"),
+                    axis.text.x=element_text(size = 11)) 
+)
+
+
+cor(master$Political_Rights, master$Death_Rate,  method = "pearson", use = "complete.obs")
+```
+Further analysis was conducted to explore the relationship between political rights, civil liberties, and the death rate. Would political rights and civil liberties align well with each other and thus demonstrate similar patterns when related to the death rate? The intention was to detect anomalies in political rights and civil liberties. 
+
+Political rights measure if the chief national authorities and legislative representatives are elected through free and fair elections if people have the right to organize different political parties, if the opposing party can gain power through a fair election without external forces, and if the government is operated with transparency. Based on the analysis, political rights do not have an apparent relationship with the death rate. The points are all spread out throughout the plot. There is very little correlation observed between political rights and the death rate. The correlation coefficient is calculated to be 0.1694, which is close to that of the Freedom score in the previous analysis. 
+
+In civil liberties sections, the countries are scored based on if the media functions as an independent entity, and whether individuals can exercise freedom of religion, speech, and assembly. The countries are evaluated for having an independent judiciary, due process in civil and criminal matters, and equal treatment of the population in front of laws and policies. Lastly, civil liberties include individual rights such as freedom of movement, right to own property and start own business, freedom of marriage, and equal opportunity. From the analysis, there wasn't much noteworthy trend. Although the countries with high civil liberties had a greater number of high death rates, the death rates are randomly plotted in no apparent relation to the civil liberties score. The correlation coefficient is calculated to be 0.188, which is close to that of the Freedom score. 
+
+When we analyze the relationship between political rights and civil liberties, two variables are closely aligned with a correlation coefficient of 0.961. The result suggests political rights scores are connected to the civil liberties score. Countries with high political scores are very likely to have high civil liberties, and countries with low political scores are most likely to have low civil liberties, with no exceptions. From the analysis, we learn that Freedom Score and its subcategories: political rights and civil liberties score do not have are not related to the heart disease rate around the world.
+
+```{r}
+# look into "Civil_Liberties"
+
+(political_death <- ggplot(master, aes(x=Political_Rights, y=Civil_Liberties))+ 
+  geom_point()+
+  scale_y_continuous() +
+  geom_smooth(method="lm", se=F, fullrange=FALSE, level=0.95) +
+  labs(title = "Political Rights Scores vs. Civil Liberties Score",
+  x = "Political Rights Scores", y = "Civil Liberties Scores") +
+  theme(plot.title = element_text(size = 14, 
+                    family = "Tahoma", face = "bold"),
+                    text = element_text(size = 12, family = "Tahoma"),
+                    axis.title = element_text(face="bold"),
+                    axis.text.x=element_text(size = 11)) 
+)
+
+cor(master$Political_Rights, master$Civil_Liberties,  method = "pearson", use = "complete.obs")
+```
+
+
+```{r}
+# Top 10 highest death rate -- > 1. Ukraine, Belarus, Lithuania, 
+master %>% 
+  arrange(desc(Death_Rate)) %>% 
+  head(10)
+
+# Top 10 lowest death rate -- > 1. Uganda 2. South Sudan 3. Ethiopia, 
+master %>% 
+  arrange(Death_Rate) %>% 
+  head(10)
+```
+
