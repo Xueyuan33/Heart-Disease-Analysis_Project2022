@@ -1,10 +1,6 @@
 Heart Disease around the World: Exploration and Analysis of Factors and
 Trends
 ================
-Changzhou Li  
-Xueyuan Li  
-Minwoo Sohn  
-Amogh Vig
 
 # Introduction
 
